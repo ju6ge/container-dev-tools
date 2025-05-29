@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CONTAINER_IMAGE="localhost/bash-dev-tools:latest"
+CONTAINER_TOOLS_BASEDIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+
+function _fatal {
+	echo -e "\e[31mERROR\e[0m   $(</dev/stdin)$*" 1>&2
+	exit 1
+}
+
+declare -a PODMAN_ARGS=(
+	"--rm" "-i" "--log-driver=none"
+	"-v" "$PWD:$PWD:rw"
+	"-w" "$PWD"
+)
+
+[[ -t 1 ]] && PODMAN_ARGS+=("-t")
+
+if podman image exists "$CONTAINER_IMAGE"; then
+	podman run "${PODMAN_ARGS[@]}" --entrypoint shfmt "$CONTAINER_IMAGE" "$@"
+else
+	#attempt to build container image
+	"$CONTAINER_TOOLS_BASEDIR/build/build_bash_container.sh" 1>&2 ||
+		_fatal "failed to build local image, cannot continue! … please ensure you have an internet connection"
+fi

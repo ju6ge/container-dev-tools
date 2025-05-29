@@ -15,7 +15,9 @@ declare -a PODMAN_ARGS=(
 	"--pid=host"
 	"-v" "$PWD:$PWD:rw"
 	"-v" "/usr/share/bash-completion/completions/:/usr/share/bash-completion/completions"
-	"-v" "/usr/bin:/usr/bin"
+	"-v" "/usr/share/man:/usr/share/man"
+	#"-e" "BASH_IDE_LOG_LEVEL=debug"
+	#"-e" "EXPLAINSHELL_ENDPOINT=https://explainshell.com"
 	"-w" "$PWD"
 )
 

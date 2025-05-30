@@ -1,0 +1,32 @@
+#!/bin/env bash
+
+set -euo pipefail
+
+# small wrapper script to create a target directory at a specified location and symlink it as target to project dir
+# this is to enable moving the cached build artifacts to a different location.
+#
+# The primary use case for this script is to move junk data to a location where it will not pollute backups
+
+RUST_CONTAINER=docker.io/rust
+RUST_CONTAINER_TAG=${RUST_VERSION:-"latest"}
+CARGO_CACHE_BASE_DIR=/var/cache/build-cache/cargo
+
+declare -a PODMAN_ARGS=(
+	"--rm" "-i" "--log-driver=none"
+	"--pull=newer"
+	"-v" "$PWD:$PWD:rw"
+	"-w" "$PWD"
+)
+
+[[ -t 1 ]] && PODMAN_ARGS+=( "-t" )
+
+[[ -L "$PWD/target" ]] && rm "$PWD/target"
+# only symlink target directory if no target directory exists yet
+if [ -f "Cargo.toml" ]; then
+	PROJECT_CACHE_DIR="$CARGO_CACHE_BASE_DIR/$(tomlq -r '.package.name' < Cargo.toml)-target"
+	[[ ! -f "$PROJECT_CACHE_DIR" ]] && mkdir -p "$PROJECT_CACHE_DIR"
+	PODMAN_ARGS+=("-v" "$PROJECT_CACHE_DIR:$PWD/target")
+fi
+
+podman run "${PODMAN_ARGS[@]}" --entrypoint cargo "$RUST_CONTAINER:$RUST_CONTAINER_TAG" "$@"
+[[ -d "$PWD/target" ]] && [[ -n "$PROJECT_CACHE_DIR" ]] &&rm -rf "$PWD/target" && ln -s "$PROJECT_CACHE_DIR" "$PWD/target"

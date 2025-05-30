@@ -3,7 +3,7 @@
 set -euo pipefail
 
 CONTAINER_IMAGE="localhost/bash-dev-tools:latest"
-CONTAINER_TOOLS_BASEDIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+CONTAINER_TOOLS_BASEDIR="$(dirname "$(readlink -f "$0")")"
 
 function _fatal {
 	echo -e "\e[31mERROR\e[0m   $(</dev/stdin)$*" 1>&2

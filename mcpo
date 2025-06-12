@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CONTAINER_IMAGE="localhost/mcp:latest"
+CONTAINER_TOOLS_BASEDIR="$(dirname "$(readlink -f "$0")")"
+
+function _fatal {
+	echo -e "\e[31mERROR\e[0m   $(</dev/stdin)$*" 1>&2
+	exit 1
+}
+
+declare -a PODMAN_ARGS=(
+	"--rm" "-i" "--log-driver=none"
+	"-v" "$PWD:$PWD:rw"
+	"-w" "$PWD"
+)
+
+if [ -f "$PWD/.hyper-mcp.json" ]; then
+	declare -a PODMAN_HYPR_MCP_MOUNT=(
+		"-v" "$PWD/.hyper-mcp.json:/root/.config/hyper-mcp/config.json"
+	)
+fi
+
+
+[[ -t 1 ]] && PODMAN_ARGS+=("-t")
+
+if podman image exists "$CONTAINER_IMAGE"; then
+	echo "Container exists already" 1>&2
+else
+	#attempt to build container image
+	"$CONTAINER_TOOLS_BASEDIR/build/build_bash_container.sh" 1>&2 ||
+		_fatal "failed to build local image, cannot continue! … please ensure you have an internet connection"
+fi
+
+case "${1:-}" in
+  sqlite)
+	if [ -z "${PODMAN_HYPR_MCP_MOUNT:-}" ]; then
+		echo "No hyper-mcp configuration found!"
+		exit 1
+	fi
+	podman run "${PODMAN_ARGS[@]}" "${PODMAN_HYPR_MCP_MOUNT[@]}" --entrypoint mcpo -p 1234:1234 "$CONTAINER_IMAGE" -p 1234 -- hyper-mcp
+	;;
+  *)
+    echo "Usage: mcpo [argument]"
+    echo "Available arguments:"
+    echo "  sqlite: start mcpo server proxy for sqlite mcp server"
+    exit 1
+    ;;
+esac

@@ -13,15 +13,15 @@ function _fatal {
 declare -a PODMAN_ARGS=(
 	"--rm" "-i" "--log-driver=none"
 	"--pid=host"
-	"-p" "3000:3000"
 	"-v" "$PWD:$PWD:rw"
+	"-p" "${PNPM_HOST_PORT:-5173}:5173"
 	"-w" "$PWD"
 )
 
 [[ -t 1 ]] && PODMAN_ARGS+=("-t")
 
 if podman image exists "$CONTAINER_IMAGE"; then
-	podman run "${PODMAN_ARGS[@]}" --entrypoint npx "$CONTAINER_IMAGE" "$@"
+	podman run "${PODMAN_ARGS[@]}" --entrypoint npm "$CONTAINER_IMAGE" "$@"
 else
 	#attempt to build container image
 	"$CONTAINER_TOOLS_BASEDIR/build/build_nodejs_container.sh" 1>&2 ||
